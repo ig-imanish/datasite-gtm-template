@@ -5,8 +5,8 @@ ___INFO___
   "id": "cvt_temp_public_id",
   "version": 1,
   "securityGroups": [],
-  "displayName": "Datasite Analytics",
-  "description": "Load Datasite Analytics and optional session recording.",
+  "displayName": "BetterUmami Analytics",
+  "description": "Load BetterUmami Analytics and optional session recording.",
   "categories": ["ANALYTICS"],
   "containerContexts": ["WEB"]
 }
@@ -56,13 +56,6 @@ ___TEMPLATE_PARAMETERS___
   },
   {
     "type": "CHECKBOX",
-    "name": "noVisitorId",
-    "displayName": "No Visitor ID",
-    "simpleValueType": true,
-    "defaultValue": false
-  },
-  {
-    "type": "CHECKBOX",
     "name": "enableSessionRecording",
     "displayName": "Enable Session Recording",
     "simpleValueType": true,
@@ -75,27 +68,43 @@ ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 
 const injectScript = require('injectScript');
 const encodeUriComponent = require('encodeUriComponent');
-const requireConsent = require('requireConsent');
-
-requireConsent('analytics_storage');
+const isConsentGranted = require('isConsentGranted');
+const setInWindow = require('setInWindow');
 
 const websiteId = data.websiteId;
-let scriptUrl = 'https://datasite.sh/script.js?website-id=' +
+if (!websiteId) {
+  data.gtmOnFailure();
+  return;
+}
+
+if (!isConsentGranted('analytics_storage')) {
+  data.gtmOnSuccess();
+  return;
+}
+
+const config = {
+  websiteId: websiteId
+};
+if (data.performance) config.performance = true;
+if (data.doNotTrack) config.doNotTrack = true;
+if (data.excludeSearch) config.excludeSearch = true;
+if (data.excludeHash) config.excludeHash = true;
+setInWindow('umamiConfig', config, true);
+
+let scriptUrl = 'https://app.betterumami.com/script.js?website-id=' +
   encodeUriComponent(websiteId);
 
 if (data.performance) scriptUrl += '&performance=true';
 if (data.doNotTrack) scriptUrl += '&do-not-track=true';
 if (data.excludeSearch) scriptUrl += '&exclude-search=true';
 if (data.excludeHash) scriptUrl += '&exclude-hash=true';
-if (data.noVisitorId) scriptUrl += '&no-visitor-id=true';
-
 injectScript(scriptUrl, function () {
   if (!data.enableSessionRecording) {
     data.gtmOnSuccess();
     return;
   }
 
-  const recorderUrl = 'https://datasite.sh/recorder.js?website-id=' +
+  const recorderUrl = 'https://app.betterumami.com/recorder.js?website-id=' +
     encodeUriComponent(websiteId);
   injectScript(recorderUrl, data.gtmOnSuccess, data.gtmOnFailure);
 }, data.gtmOnFailure);
@@ -105,34 +114,225 @@ ___WEB_PERMISSIONS___
 
 [
   {
-    "type": "require_consent",
-    "consentType": "analytics_storage"
+    "instance": {
+      "key": {
+        "publicId": "inject_script",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "urls",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 1,
+                "string": "https://app.betterumami.com/script.js*"
+              },
+              {
+                "type": 1,
+                "string": "https://app.betterumami.com/recorder.js*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
   },
   {
-    "type": "inject_script",
-    "allowedUrls": [
-      "https://datasite.sh/script.js",
-      "https://datasite.sh/recorder.js",
-      "https://app.datasite.sh/script.js",
-      "https://app.datasite.sh/recorder.js"
-    ]
+    "instance": {
+      "key": {
+        "publicId": "access_consent",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "consentTypes",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "consentType"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "analytics_storage"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "access_globals",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "keys",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "umamiConfig"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
   }
 ]
 
 
 ___TESTS___
 
-[
-  {
-    "name": "Loads the Datasite tracker with required Website ID",
-    "runCode": "const mockData = { websiteId: 'test-site-id', gtmOnSuccess: () => {}, gtmOnFailure: () => {} }; let loadedUrl = ''; mock('injectScript', (url, success) => { loadedUrl = url; success(); }); mock('encodeUriComponent', value => value); mock('requireConsent', () => {}); runCode(mockData); assertThat(loadedUrl).contains('https://datasite.sh/script.js'); assertThat(loadedUrl).contains('website-id=test-site-id');"
-  },
-  {
-    "name": "Loads recorder after tracker when enabled",
-    "runCode": "const mockData = { websiteId: 'test-site-id', enableSessionRecording: true, gtmOnSuccess: () => {}, gtmOnFailure: () => {} }; let urls = []; mock('injectScript', (url, success) => { urls.push(url); success(); }); mock('encodeUriComponent', value => value); mock('requireConsent', () => {}); runCode(mockData); assertThat(urls[1]).contains('https://datasite.sh/recorder.js');"
-  },
-  {
-    "name": "Maps all privacy and performance options",
-    "runCode": "const mockData = { websiteId: 'test-site-id', performance: true, doNotTrack: true, excludeSearch: true, excludeHash: true, noVisitorId: true, gtmOnSuccess: () => {}, gtmOnFailure: () => {} }; let loadedUrl = ''; mock('injectScript', (url, success) => { loadedUrl = url; success(); }); mock('encodeUriComponent', value => value); mock('requireConsent', () => {}); runCode(mockData); assertThat(loadedUrl).contains('performance=true'); assertThat(loadedUrl).contains('do-not-track=true'); assertThat(loadedUrl).contains('exclude-search=true'); assertThat(loadedUrl).contains('exclude-hash=true'); assertThat(loadedUrl).contains('no-visitor-id=true');"
-  }
-]
+scenarios:
+- name: Loads BetterUmami tracker with required Website ID
+  code: |-
+    const mockData = {
+      websiteId: 'test-site-id',
+      gtmOnSuccess: function() {},
+      gtmOnFailure: function() {}
+    };
+    mock('isConsentGranted', function() { return true; });
+    mock('setInWindow', function() {});
+    mock('injectScript', function(url, success) {
+      assertThat(url).contains('https://app.betterumami.com/script.js');
+      assertThat(url).contains('website-id=test-site-id');
+      success();
+    });
+    mock('encodeUriComponent', function(value) { return value; });
+    runCode(mockData);
+- name: Loads recorder after tracker when enabled
+  code: |-
+    const mockData = {
+      websiteId: 'test-site-id',
+      enableSessionRecording: true,
+      gtmOnSuccess: function() {},
+      gtmOnFailure: function() {}
+    };
+    mock('isConsentGranted', function() { return true; });
+    mock('setInWindow', function() {});
+    const urls = [];
+    mock('injectScript', function(url, success) {
+      urls.push(url);
+      success();
+    });
+    mock('encodeUriComponent', function(value) { return value; });
+    runCode(mockData);
+    assertThat(urls.length).equals(2);
+    assertThat(urls[1]).contains('https://app.betterumami.com/recorder.js');
+    assertThat(urls[1]).contains('website-id=test-site-id');
+- name: Maps all privacy and performance options
+  code: |-
+    const mockData = {
+      websiteId: 'test-site-id',
+      performance: true,
+      doNotTrack: true,
+      excludeSearch: true,
+      excludeHash: true,
+      gtmOnSuccess: function() {},
+      gtmOnFailure: function() {}
+    };
+    mock('isConsentGranted', function() { return true; });
+    mock('setInWindow', function() {});
+    mock('injectScript', function(url, success) {
+      assertThat(url).contains('performance=true');
+      assertThat(url).contains('do-not-track=true');
+      assertThat(url).contains('exclude-search=true');
+      assertThat(url).contains('exclude-hash=true');
+      success();
+    });
+    mock('encodeUriComponent', function(value) { return value; });
+    runCode(mockData);
+- name: Waits for analytics storage consent
+  code: |-
+    const mockData = {
+      websiteId: 'test-site-id',
+      gtmOnSuccess: function() {},
+      gtmOnFailure: function() {}
+    };
+    mock('isConsentGranted', function(type) {
+      return type !== 'analytics_storage';
+    });
+    mock('injectScript', function() {
+      fail('Tracker script was injected without analytics consent');
+    });
+    mock('encodeUriComponent', function(value) { return value; });
+    runCode(mockData);
