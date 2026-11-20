@@ -1,0 +1,7 @@
+homepage: "https://datasite.sh/"
+documentation: "https://github.com/ig-imanish/datasite-gtm-template"
+categories:
+  - "Analytics"
+versions:
+  - sha: "9dffea1d688d37a670b8b2ea38ec23eccf75c731"
+    changeNotes: "Initial release."
