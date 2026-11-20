@@ -3,5 +3,5 @@ documentation: "https://github.com/ig-imanish/datasite-gtm-template"
 categories:
   - "Analytics"
 versions:
-  - sha: "9dffea1d688d37a670b8b2ea38ec23eccf75c731"
-    changeNotes: "Initial release."
+  - sha: "08f601f6c95be0abdbc7ab9d96b6a96c9184ca45"
+    changeNotes: "Fix the exported GTM template format, BetterUmami URLs, analytics consent handling, dynamic script permissions, field configuration, and tests."
